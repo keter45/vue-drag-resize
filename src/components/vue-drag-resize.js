@@ -44,6 +44,9 @@ export default {
         preventActiveBehavior: {
             type: Boolean, default: false,
         },
+        isSolid: {
+            type: Boolean, default: false,
+        },
         isDraggable: {
             type: Boolean, default: true,
         },
@@ -176,6 +179,8 @@ export default {
             right: null,
             bottom: null,
             minHeight: null,
+            retrictedAreas: null,
+            lastValidPosition: null,
         };
     },
 
@@ -293,6 +298,10 @@ export default {
                 return;
             }
 
+            if(this.isSolid) {
+                this.buildLimitMap();
+            }
+
             this.$emit('clicked', ev);
 
             if (!this.active) {
@@ -370,6 +379,18 @@ export default {
                 newBottom = parentHeight - height - newTop;
                 newLeft -= (alignLeft ? diffL : diffR);
                 newRight = parentWidth - width - newLeft;
+            }
+
+            if(this.isSolid) {
+                ({
+                    newLeft: this.left,
+                    newRight: this.right,
+                    newTop: this.top,
+                    newBottom: this.bottom,
+                } = this.rectCorrectionBySibling({ newLeft, newRight, newTop, newBottom }));
+
+                this.$emit('dragging', this.rect);
+                return;
             }
 
             ({
@@ -675,6 +696,68 @@ export default {
             }
 
             return { newLeft, newRight, newTop, newBottom };
+        },
+
+        getSiblings() {
+            const allChieldren = this.$el.parentElement.children;
+            return allChieldren;
+        },
+        buildLimitMap() {
+            const siblings = this.getSiblings();
+            const retrictedAreas = siblings.filter((item) => {
+                const { x , y , h , w} = {
+                    x: item.clientLeft,
+                    y: item.clientTop,
+                    h: item.clientHeight,
+                    w: item.clientWidth
+                };
+
+                if (this.x === x && this.y === y) {
+                    return;
+                }
+
+                const restrict = {
+                    left: x,
+                    top: y,
+                    right: x + w,
+                    bottom: y + h
+                };
+
+                return restrict;
+            })
+            this.retrictedAreas =  retrictedAreas;
+        },
+        rectCorrectionBySibling(rect){
+            let { newRight, newLeft, newBottom, newTop } = rect;
+
+            const colideList = this.retrictedAreas.map((sibling)=> {
+                return this.checkColision(sibling, rect);
+            });
+
+            if(!colideList.every((a)=>a)) {
+                return this.lastValidPosition;
+            }
+            
+            this.lastValidPosition = rect;
+            ({ newRight, newLeft, newBottom, newTop } = this.rectCorrectionByLimit(rect));
+
+            return {
+                newLeft,
+                newRight,
+                newTop,
+                newBottom,
+            };
+        },
+        checkColision(sibling, current) {
+            if(
+                (current.left < sibling.left) && 
+                (current.right > sibling.left) &&
+                (current.bottom > sibling.top) &&
+                (current.top < sibling.bottom)
+            ) {
+                return false;
+            }
+            return true;
         },
     },
 
