@@ -44,6 +44,10 @@ export default {
             return this.activeRect === null ? false : this.$store.state.rect.rects[this.activeRect].resizable;
         },
 
+        solid() {
+            return this.activeRect === null ? false : this.$store.state.rect.rects[this.activeRect].solid;
+        },
+
         snapToGrid() {
             return this.activeRect === null ? false : this.$store.state.rect.rects[this.activeRect].snapToGrid;
         },
@@ -107,6 +111,10 @@ export default {
 
         toggleResizable() {
             this.$store.dispatch('rect/toggleResizable', {id: this.activeRect});
+        },
+
+        toggleSolid() {
+            this.$store.dispatch('rect/toggleSolid', {id: this.activeRect});
         },
 
         toggleDraggable() {
